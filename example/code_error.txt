@@ -1,0 +1,21 @@
+42PUYAVVARR | EXCEPTION | Request failed with status code 400
+922UNPVPRRP | EXCEPTION | Request failed with status code 400
+A29UVRAANP3 | EXCEPTION | {"error":"Invalid captcha type. Use \"mCaptcha\", \"aCaptcha\", \"cCaptcha\", or \"teeCaptcha\""}
+92KUK2YV3RV | EXCEPTION | {"error":"Invalid captcha type. Use \"mCaptcha\", \"aCaptcha\", \"cCaptcha\", or \"teeCaptcha\""}
+42PUYAVVARR | EXCEPTION | {"error":"Invalid captcha type. Use \"mCaptcha\", \"aCaptcha\", \"cCaptcha\", or \"teeCaptcha\""}
+92KUK2YV3RV | EXCEPTION | {"error":"Failed to process captcha: Missing 'value' or 'images' field in captcha_data"}
+42PUYAVVARR | EXCEPTION | {"error":"Failed to process captcha: Missing 'value' or 'images' field in captcha_data"}
+92KUK2YV3RV | EXCEPTION | require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and 'E:\Work\package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+42PUYAVVARR | EXCEPTION | require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and 'E:\Work\package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+92KUK2YV3RV | EXCEPTION | require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and 'E:\Work\package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+42PUYAVVARR | EXCEPTION | OCR captcha (sCaptcha) không đọc được ký tự hợp lệ
+922UNPVPRRP | EXCEPTION | {"message":["productId should not be empty"],"error":"Bad Request","statusCode":400}
+92KUK2YV3RV | EXCEPTION | {"message":["productId should not be empty"],"error":"Bad Request","statusCode":400}
+42PUYAVVARR | EXCEPTION | {"message":["productId should not be empty"],"error":"Bad Request","statusCode":400}
+92KUK2YV3RV | EXCEPTION | {"statusCode":-201,"data":null,"message":"Code invalid!!!"}
+42PUYAVVARR | EXCEPTION | {"statusCode":429,"message":"Too many request","data":null}
+922UNPVPRRP | EXCEPTION | {"statusCode":429,"message":"Too many request","data":null}
+A29UVRAANP3 | EXCEPTION | {"statusCode":-200,"data":null,"message":"Code invalid!!! 1"}

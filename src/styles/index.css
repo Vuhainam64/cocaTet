@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* Override Ant Design Layout margin for nested layouts */
+.proxies-layout.ant-layout-has-sider > .ant-layout,
+.account-layout.ant-layout-has-sider > .ant-layout,
+.proxy-layout.ant-layout-has-sider > .ant-layout,
+.code-layout.ant-layout-has-sider > .ant-layout {
+    margin-left: 0 !important;
+}
+
+.proxies-layout.ant-layout-has-sider > .ant-layout-content,
+.account-layout.ant-layout-has-sider > .ant-layout-content,
+.proxy-layout.ant-layout-has-sider > .ant-layout-content,
+.code-layout.ant-layout-has-sider > .ant-layout-content {
+    margin-left: 0 !important;
+}
+
+/* Override any automatic margin-left from Ant Design */
+.ant-layout.ant-layout-has-sider > .ant-layout:not(.ant-layout-sider) {
+    margin-left: 0 !important;
+}
+
+/* Custom scrollbar for collection list */
+.account-sider .space-y-2::-webkit-scrollbar,
+.proxy-sider .space-y-2::-webkit-scrollbar,
+.code-sider .space-y-2::-webkit-scrollbar {
+    width: 6px;
+}
+
+.account-sider .space-y-2::-webkit-scrollbar-track,
+.proxy-sider .space-y-2::-webkit-scrollbar-track,
+.code-sider .space-y-2::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.account-sider .space-y-2::-webkit-scrollbar-thumb,
+.proxy-sider .space-y-2::-webkit-scrollbar-thumb,
+.code-sider .space-y-2::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.dark .account-sider .space-y-2::-webkit-scrollbar-thumb,
+.dark .proxy-sider .space-y-2::-webkit-scrollbar-thumb,
+.dark .code-sider .space-y-2::-webkit-scrollbar-thumb {
+    background: #475569;
+}
