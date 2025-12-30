@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import { getDatabase } from '../database/index.js';
 import { AccountModel } from '../database/models/account.js';
 import { ProxyModel } from '../database/models/proxy.js';
@@ -46,15 +48,41 @@ function buildHeaders(tokenOverride) {
     };
 }
 
-async function getSmartCaptcha(options = {}, tokenOverride) {
+function buildProxyAgent(proxy) {
+    if (!proxy) return null;
+    
+    const proxyUrl = proxy.username && proxy.password
+        ? `${proxy.type || 'socks5'}://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`
+        : `${proxy.type || 'socks5'}://${proxy.host}:${proxy.port}`;
+    
+    if (proxy.type === 'http' || proxy.type === 'https') {
+        return new HttpsProxyAgent(proxyUrl);
+    } else {
+        // socks5 hoặc socks4
+        return new SocksProxyAgent(proxyUrl);
+    }
+}
+
+async function getSmartCaptcha(options = {}, tokenOverride, proxy = null) {
     const { length = 3, charsetType = 'alphabet' } = options;
     const url = `${BASE_URL}/digital-campaign-utc-codes/getSmartCaptcha?length=${length}&charsetType=`;
     const headers = buildHeaders(tokenOverride);
-    const res = await axios.get(url, { headers });
+    
+    // Thêm delay nhỏ trước khi gọi API để tránh rate limit
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const axiosConfig = { headers };
+    const proxyAgent = buildProxyAgent(proxy);
+    if (proxyAgent) {
+        axiosConfig.httpsAgent = proxyAgent;
+        axiosConfig.httpAgent = proxyAgent;
+    }
+    
+    const res = await axios.get(url, axiosConfig);
     return res.data;
 }
 
-async function checkCode({ code, recaptcha }, tokenOverride) {
+async function checkCode({ code, recaptcha }, tokenOverride, proxy = null) {
     const url = `${BASE_URL}/digital-campaign-utc-codes/checkCode`;
     const headers = {
         ...buildHeaders(tokenOverride),
@@ -62,11 +90,19 @@ async function checkCode({ code, recaptcha }, tokenOverride) {
         'content-type': 'application/json; charset=UTF-8',
     };
     const body = { code, mparams: {}, productId: PRODUCT_ID, recaptcha };
-    const res = await axios.post(url, body, { headers });
+    
+    const axiosConfig = { headers };
+    const proxyAgent = buildProxyAgent(proxy);
+    if (proxyAgent) {
+        axiosConfig.httpsAgent = proxyAgent;
+        axiosConfig.httpAgent = proxyAgent;
+    }
+    
+    const res = await axios.post(url, body, axiosConfig);
     return res.data;
 }
 
-async function checkResultScanCodeQueue(checkId, tokenOverride) {
+async function checkResultScanCodeQueue(checkId, tokenOverride, proxy = null) {
     const url = `${BASE_URL}/digital-campaign-gifts/checkResultScanCodeQueue`;
     const headers = {
         ...buildHeaders(tokenOverride),
@@ -74,7 +110,15 @@ async function checkResultScanCodeQueue(checkId, tokenOverride) {
         'content-type': 'application/json; charset=UTF-8',
     };
     const body = { checkId };
-    const res = await axios.post(url, body, { headers });
+    
+    const axiosConfig = { headers };
+    const proxyAgent = buildProxyAgent(proxy);
+    if (proxyAgent) {
+        axiosConfig.httpsAgent = proxyAgent;
+        axiosConfig.httpAgent = proxyAgent;
+    }
+    
+    const res = await axios.post(url, body, axiosConfig);
     return res.data;
 }
 
@@ -97,8 +141,8 @@ async function ocrCaptcha(imagePath) {
     return text.replace(/[^0-9]/g, '');
 }
 
-async function solveCaptchaForTet(token) {
-    const captchaRes = await getSmartCaptcha({ length: 3, charsetType: 'alphabet' }, token);
+async function solveCaptchaForTet(token, proxy = null) {
+    const captchaRes = await getSmartCaptcha({ length: 3, charsetType: 'alphabet' }, token, proxy);
     if (!captchaRes || captchaRes.statusCode !== 200 || !captchaRes.data) {
         throw new Error(`Lấy captcha thất bại: ${captchaRes && captchaRes.message}`);
     }
@@ -182,10 +226,10 @@ async function processCodeForAccount(account, proxy, code, timeoutMs) {
     try {
         appendLog(`${accountName} | ${code.code} | Bắt đầu xử lý`);
 
-        const { recaptcha } = await solveCaptchaForTet(account.token);
+        const { recaptcha } = await solveCaptchaForTet(account.token, proxy);
         appendLog(`${accountName} | ${code.code} | Captcha solved: ${recaptcha}`);
 
-        const res = await checkCode({ code: code.code, recaptcha }, account.token);
+        const res = await checkCode({ code: code.code, recaptcha }, account.token, proxy);
 
         if (res && res.statusCode === 200) {
             appendLog(`${accountName} | ${code.code} | SUCCESS | CHECK_CODE | ${JSON.stringify(res.data)}`);
@@ -193,7 +237,7 @@ async function processCodeForAccount(account, proxy, code, timeoutMs) {
             const checkId = res.data?.logId || res.data?.checkId;
             if (checkId) {
                 try {
-                    const checkRes = await checkResultScanCodeQueue(checkId, account.token);
+                    const checkRes = await checkResultScanCodeQueue(checkId, account.token, proxy);
                     const checkData = checkRes?.data || {};
                     const goodLuck = checkData.goodLuck;
                     const prizeName = checkData.prizeName || checkData.name || checkData.giftName || null;
@@ -279,8 +323,12 @@ async function processCodeForAccount(account, proxy, code, timeoutMs) {
         });
     }
 
+    // Delay giữa các code để tránh rate limit
     if (timeoutMs > 0) {
         await new Promise((resolve) => setTimeout(resolve, timeoutMs));
+    } else {
+        // Nếu không có timeout, vẫn delay tối thiểu 2 giây
+        await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 }
 
@@ -329,12 +377,26 @@ export async function startExchangeGift({ accountCollectionId, proxyCollectionId
 
             appendLog(`Bắt đầu task với ${accounts.length} accounts, ${proxies.length} proxies, ${codes.length} codes`);
 
-            // Chạy đa luồng - mỗi account chạy song song
-            const accountPromises = accounts.map(async (account, i) => {
+            // Kiểm tra số lượng proxy
+            if (proxies.length < accounts.length) {
+                appendLog(`Cảnh báo: Chỉ có ${proxies.length} proxies nhưng có ${accounts.length} accounts. Chỉ chạy ${proxies.length} accounts đầu tiên.`);
+            }
+
+            // Shuffle proxies để phân phối ngẫu nhiên
+            const shuffledProxies = [...proxies].sort(() => Math.random() - 0.5);
+            
+            // Chạy đa luồng - mỗi account chạy song song với proxy riêng
+            // Thêm delay giữa các account để tránh "Too many request"
+            const accountPromises = accounts.slice(0, proxies.length).map(async (account, i) => {
                 if (!taskRunning) return;
 
-                const proxyIndex = i % proxies.length;
-                const proxy = proxies[proxyIndex] || null;
+                // Delay giữa các account khi bắt đầu (mỗi account cách nhau 2 giây)
+                if (i > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 2000 * i));
+                }
+
+                // Mỗi account dùng 1 proxy riêng, không trùng
+                const proxy = shuffledProxies[i] || null;
 
                 updateProgress(account.id, {
                     accountName: account.name,
