@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Form, Select, InputNumber, Button, Space, Card, App } from 'antd';
 import { MdPlayArrow, MdStop, MdDescription } from 'react-icons/md';
 import ProgressTable from './ProgressTable';
+import PrizeTable from './PrizeTable';
 import LogModal from './LogModal';
 
 export default function ExchangeGift() {
@@ -12,6 +13,7 @@ export default function ExchangeGift() {
     const [codeCollections, setCodeCollections] = useState([]);
     const [isRunning, setIsRunning] = useState(false);
     const [progress, setProgress] = useState([]);
+    const [prizes, setPrizes] = useState([]);
     const [logModalVisible, setLogModalVisible] = useState(false);
 
     useEffect(() => {
@@ -81,9 +83,15 @@ export default function ExchangeGift() {
         if (isRunning) {
             interval = setInterval(async () => {
                 try {
-                    const result = await window.electronAPI.getExchangeGiftProgress();
-                    if (result.success) {
-                        setProgress(result.data || []);
+                    const [progressRes, prizesRes] = await Promise.all([
+                        window.electronAPI.getExchangeGiftProgress(),
+                        window.electronAPI.getExchangeGiftPrizes(),
+                    ]);
+                    if (progressRes.success) {
+                        setProgress(progressRes.data || []);
+                    }
+                    if (prizesRes.success) {
+                        setPrizes(prizesRes.data || []);
                     }
                 } catch (error) {
                     console.error('Error getting progress:', error);
@@ -92,9 +100,15 @@ export default function ExchangeGift() {
         } else {
             interval = setInterval(async () => {
                 try {
-                    const result = await window.electronAPI.getExchangeGiftProgress();
-                    if (result.success && result.data && result.data.length > 0) {
-                        setProgress(result.data);
+                    const [progressRes, prizesRes] = await Promise.all([
+                        window.electronAPI.getExchangeGiftProgress(),
+                        window.electronAPI.getExchangeGiftPrizes(),
+                    ]);
+                    if (progressRes.success && progressRes.data && progressRes.data.length > 0) {
+                        setProgress(progressRes.data);
+                    }
+                    if (prizesRes.success) {
+                        setPrizes(prizesRes.data || []);
                     }
                 } catch (error) {
                     console.error('Error getting progress:', error);
@@ -218,6 +232,10 @@ export default function ExchangeGift() {
 
             <Card title="Tiến trình">
                 <ProgressTable progress={progress} />
+            </Card>
+
+            <Card title="Danh sách giải đã trúng" className="mt-4">
+                <PrizeTable prizes={prizes} />
             </Card>
 
             <LogModal

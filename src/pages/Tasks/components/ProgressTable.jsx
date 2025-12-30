@@ -57,6 +57,17 @@ export default function ProgressTable({ progress }) {
                 );
             },
         },
+        {
+            title: 'Prize',
+            dataIndex: 'prize',
+            key: 'prize',
+            width: 200,
+            render: (prize) => (
+                <span className={prize && prize !== 'No Prize' ? 'text-green-600 font-semibold' : 'text-gray-500'}>
+                    {prize || 'No Prize'}
+                </span>
+            ),
+        },
     ];
 
     return (

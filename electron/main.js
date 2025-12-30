@@ -130,12 +130,17 @@ function setupIpcHandlers() {
   // Save file
   ipcMain.handle('file:save', async (event, content, defaultFilename) => {
     try {
+      const filters = [];
+      if (defaultFilename && defaultFilename.endsWith('.csv')) {
+        filters.push({ name: 'CSV Files', extensions: ['csv'] });
+      } else {
+        filters.push({ name: 'Text Files', extensions: ['txt'] });
+      }
+      filters.push({ name: 'All Files', extensions: ['*'] });
+
       const { filePath } = await dialog.showSaveDialog(mainWindow, {
         defaultPath: defaultFilename || 'output.txt',
-        filters: [
-          { name: 'Text Files', extensions: ['txt'] },
-          { name: 'All Files', extensions: ['*'] },
-        ],
+        filters,
       });
 
       if (filePath) {
@@ -205,10 +210,10 @@ function setupIpcHandlers() {
     }
   });
 
-  ipcMain.handle('proxies:deleteAll', async (event) => {
+  ipcMain.handle('proxies:deleteAll', async (event, collectionId) => {
     try {
       const { ProxyModel } = await import('./database/models/proxy.js');
-      const result = ProxyModel.deleteAll();
+      const result = ProxyModel.deleteAll(collectionId);
       return { success: true, data: result };
     } catch (error) {
       console.error('Delete all proxies error:', error);
@@ -422,6 +427,17 @@ function setupIpcHandlers() {
     }
   });
 
+  ipcMain.handle('accounts:deleteAll', async (event, collectionId) => {
+    try {
+      const { AccountModel } = await import('./database/models/account.js');
+      const result = AccountModel.deleteAll(collectionId);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('Delete all accounts error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   ipcMain.handle('accounts:bulkCreate', async (event, accounts, collectionId) => {
     try {
       const { AccountModel } = await import('./database/models/account.js');
@@ -545,6 +561,17 @@ function setupIpcHandlers() {
     }
   });
 
+  ipcMain.handle('codes:deleteAll', async (event, collectionId) => {
+    try {
+      const { CodeModel } = await import('./database/models/code.js');
+      const result = CodeModel.deleteAll(collectionId);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('Delete all codes error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   ipcMain.handle('codes:bulkCreate', async (event, codes, collectionId) => {
     try {
       const { CodeModel } = await import('./database/models/code.js');
@@ -594,6 +621,16 @@ function setupIpcHandlers() {
       return getExchangeGiftLogs();
     } catch (error) {
       console.error('Get exchange gift logs error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('exchangeGift:getPrizes', async (event) => {
+    try {
+      const { getExchangeGiftPrizes } = await import('./services/exchangeGiftService.js');
+      return getExchangeGiftPrizes();
+    } catch (error) {
+      console.error('Get exchange gift prizes error:', error);
       return { success: false, error: error.message };
     }
   });

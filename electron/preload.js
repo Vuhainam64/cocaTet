@@ -13,7 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     createProxy: (data) => ipcRenderer.invoke('proxies:create', data),
     updateProxy: (id, data) => ipcRenderer.invoke('proxies:update', id, data),
     deleteProxy: (id) => ipcRenderer.invoke('proxies:delete', id),
-    deleteAllProxies: () => ipcRenderer.invoke('proxies:deleteAll'),
+    deleteAllProxies: (collectionId) => ipcRenderer.invoke('proxies:deleteAll', collectionId),
+    deleteAllProxies: (collectionId) => ipcRenderer.invoke('proxies:deleteAll', collectionId),
     bulkCreateProxies: (proxies, collectionId) => ipcRenderer.invoke('proxies:bulkCreate', proxies, collectionId),
     parseProxyString: (proxyString) => ipcRenderer.invoke('proxies:parseString', proxyString),
     validateProxy: (proxyData) => ipcRenderer.invoke('proxies:validate', proxyData),
@@ -38,6 +39,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     createAccount: (data) => ipcRenderer.invoke('accounts:create', data),
     updateAccount: (id, data) => ipcRenderer.invoke('accounts:update', id, data),
     deleteAccount: (id) => ipcRenderer.invoke('accounts:delete', id),
+    deleteAllAccounts: (collectionId) => ipcRenderer.invoke('accounts:deleteAll', collectionId),
     bulkCreateAccounts: (accounts, collectionId) => ipcRenderer.invoke('accounts:bulkCreate', accounts, collectionId),
     
     // Code Collections
@@ -53,6 +55,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     createCode: (data) => ipcRenderer.invoke('codes:create', data),
     updateCode: (id, data) => ipcRenderer.invoke('codes:update', id, data),
     deleteCode: (id) => ipcRenderer.invoke('codes:delete', id),
+    deleteAllCodes: (collectionId) => ipcRenderer.invoke('codes:deleteAll', collectionId),
     bulkCreateCodes: (codes, collectionId) => ipcRenderer.invoke('codes:bulkCreate', codes, collectionId),
     
     // Exchange Gift Task
@@ -60,4 +63,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     stopExchangeGift: () => ipcRenderer.invoke('exchangeGift:stop'),
     getExchangeGiftProgress: () => ipcRenderer.invoke('exchangeGift:getProgress'),
     getExchangeGiftLogs: () => ipcRenderer.invoke('exchangeGift:getLogs'),
+    getExchangeGiftPrizes: () => ipcRenderer.invoke('exchangeGift:getPrizes'),
 });

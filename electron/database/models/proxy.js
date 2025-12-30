@@ -180,4 +180,15 @@ export const ProxyModel = {
             status: 'active',
         };
     },
+
+    deleteAll(collectionId = null) {
+        const db = getDatabase();
+        if (collectionId !== null && collectionId !== undefined) {
+            const stmt = db.prepare('DELETE FROM proxies WHERE collection_id = ?');
+            return stmt.run(collectionId);
+        } else {
+            const stmt = db.prepare('DELETE FROM proxies');
+            return stmt.run();
+        }
+    },
 };

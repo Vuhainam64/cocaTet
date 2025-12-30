@@ -93,5 +93,16 @@ export const CodeModel = {
         insertMany(codes);
         return this.getAll(collectionId || null);
     },
+
+    deleteAll(collectionId = null) {
+        const db = getDatabase();
+        if (collectionId !== null && collectionId !== undefined) {
+            const stmt = db.prepare('DELETE FROM codes WHERE collection_id = ?');
+            return stmt.run(collectionId);
+        } else {
+            const stmt = db.prepare('DELETE FROM codes');
+            return stmt.run();
+        }
+    },
 };
 

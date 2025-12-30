@@ -99,5 +99,16 @@ export const AccountModel = {
         insertMany(accounts);
         return this.getAll(collectionId || null);
     },
+
+    deleteAll(collectionId = null) {
+        const db = getDatabase();
+        if (collectionId !== null && collectionId !== undefined) {
+            const stmt = db.prepare('DELETE FROM accounts WHERE collection_id = ?');
+            return stmt.run(collectionId);
+        } else {
+            const stmt = db.prepare('DELETE FROM accounts');
+            return stmt.run();
+        }
+    },
 };
 

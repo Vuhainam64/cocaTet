@@ -16,6 +16,7 @@ const PRODUCT_ID = '69255e712d8de7e52b4a2a23';
 let taskRunning = false;
 let taskProgress = [];
 let taskLogs = [];
+let prizeList = [];
 
 function normalizeToken(token) {
     if (!token) return '';
@@ -195,15 +196,30 @@ async function processCodeForAccount(account, proxy, code, timeoutMs) {
                     const checkRes = await checkResultScanCodeQueue(checkId, account.token);
                     const checkData = checkRes?.data || {};
                     const goodLuck = checkData.goodLuck;
+                    const prizeName = checkData.prizeName || checkData.name || checkData.giftName || null;
 
                     appendLog(`${accountName} | ${code.code} | CHECK_GIFT | checkId=${checkId} | goodLuck=${goodLuck}`);
 
                     await CodeModel.update(code.id, { status: 'used' });
+                    
+                    let prizeText = 'No Prize';
+                    if (goodLuck === false && prizeName) {
+                        prizeText = prizeName;
+                        // Thêm vào danh sách giải đã trúng
+                        addPrize({
+                            account: accountName,
+                            code: code.code,
+                            prize: prizeName,
+                            time: new Date().toISOString(),
+                        });
+                    }
+
                     updateProgress(accountId, {
                         accountName,
                         proxy: proxyStr,
                         code: code.code,
                         status: 'success',
+                        prize: prizeText,
                     });
                 } catch (e) {
                     appendLog(`${accountName} | ${code.code} | CHECK_GIFT_ERROR | ${e.message}`);
@@ -212,6 +228,7 @@ async function processCodeForAccount(account, proxy, code, timeoutMs) {
                         proxy: proxyStr,
                         code: code.code,
                         status: 'error',
+                        prize: 'No Prize',
                     });
                 }
             } else {
@@ -220,6 +237,7 @@ async function processCodeForAccount(account, proxy, code, timeoutMs) {
                     proxy: proxyStr,
                     code: code.code,
                     status: 'success',
+                    prize: 'No Prize',
                 });
             }
         } else {
@@ -237,6 +255,7 @@ async function processCodeForAccount(account, proxy, code, timeoutMs) {
                 proxy: proxyStr,
                 code: code.code,
                 status: 'error',
+                prize: 'No Prize',
             });
         }
     } catch (err) {
@@ -256,6 +275,7 @@ async function processCodeForAccount(account, proxy, code, timeoutMs) {
             proxy: proxyStr,
             code: code.code,
             status: 'error',
+            prize: 'No Prize',
         });
     }
 
@@ -273,6 +293,14 @@ function updateProgress(accountId, data) {
     }
 }
 
+function addPrize(prizeData) {
+    prizeList.push(prizeData);
+    // Giới hạn danh sách tối đa 1000 giải
+    if (prizeList.length > 1000) {
+        prizeList.shift();
+    }
+}
+
 export async function startExchangeGift({ accountCollectionId, proxyCollectionId, codeCollectionId, timeoutMs }) {
     if (taskRunning) {
         return { success: false, error: 'Task đang chạy' };
@@ -281,6 +309,7 @@ export async function startExchangeGift({ accountCollectionId, proxyCollectionId
     taskRunning = true;
     taskProgress = [];
     taskLogs = [];
+    prizeList = [];
 
     (async () => {
         try {
@@ -300,10 +329,10 @@ export async function startExchangeGift({ accountCollectionId, proxyCollectionId
 
             appendLog(`Bắt đầu task với ${accounts.length} accounts, ${proxies.length} proxies, ${codes.length} codes`);
 
-            for (let i = 0; i < accounts.length; i++) {
-                if (!taskRunning) break;
+            // Chạy đa luồng - mỗi account chạy song song
+            const accountPromises = accounts.map(async (account, i) => {
+                if (!taskRunning) return;
 
-                const account = accounts[i];
                 const proxyIndex = i % proxies.length;
                 const proxy = proxies[proxyIndex] || null;
 
@@ -312,6 +341,7 @@ export async function startExchangeGift({ accountCollectionId, proxyCollectionId
                     proxy: proxy ? formatProxy(proxy) : 'No proxy',
                     code: '-',
                     status: 'waiting',
+                    prize: 'No Prize',
                 });
 
                 const activeCodes = codes.filter(c => c.status === 'active');
@@ -324,7 +354,9 @@ export async function startExchangeGift({ accountCollectionId, proxyCollectionId
 
                     await processCodeForAccount(account, proxy, codeData, timeoutMs);
                 }
-            }
+            });
+
+            await Promise.all(accountPromises);
 
             taskRunning = false;
             appendLog('Task hoàn thành');
@@ -349,6 +381,10 @@ export function getExchangeGiftProgress() {
 
 export function getExchangeGiftLogs() {
     return { success: true, data: taskLogs.join('\n') };
+}
+
+export function getExchangeGiftPrizes() {
+    return { success: true, data: prizeList };
 }
 
 export function isTaskRunning() {

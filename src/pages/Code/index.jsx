@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Layout, Typography, Button, Space, Modal, Form, Input, Popconfirm, App } from 'antd';
-import { MdAdd, MdFolder, MdEdit, MdDelete, MdFileUpload } from 'react-icons/md';
+import { MdAdd, MdFolder, MdEdit, MdDelete, MdFileUpload, MdDownload } from 'react-icons/md';
 import dayjs from 'dayjs';
 import CodeTable from './components/CodeTable';
 import CodeForm from './components/CodeForm';
 import ImportModal from './components/ImportModal';
+import ExportModal from './components/ExportModal';
 
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -24,6 +25,7 @@ export default function Code() {
     const [editingCode, setEditingCode] = useState(null);
     const [codeForm] = Form.useForm();
     const [importModalVisible, setImportModalVisible] = useState(false);
+    const [exportModalVisible, setExportModalVisible] = useState(false);
 
     useEffect(() => {
         loadCodeCollections();
@@ -175,6 +177,65 @@ export default function Code() {
     };
 
     const selectedCollection = codeCollections.find(c => c.id === selectedCollectionId);
+
+    const getCodeCountsByStatus = () => {
+        const counts = { active: 0, used: 0, invalid: 0 };
+        codes.forEach(code => {
+            if (counts.hasOwnProperty(code.status)) {
+                counts[code.status]++;
+            }
+        });
+        return counts;
+    };
+
+    const handleExport = async ({ statuses, format, deleteAfterExport }) => {
+        try {
+            // Lấy codes theo status đã chọn
+            const codesToExport = codes.filter(code => statuses.includes(code.status));
+            
+            if (codesToExport.length === 0) {
+                message.warning('Không có code nào để xuất');
+                return;
+            }
+
+            let content = '';
+            let filename = '';
+
+            if (format === 'txt') {
+                content = codesToExport.map(c => c.code).join('\n');
+                filename = `codes_${statuses.join('_')}_${new Date().toISOString().split('T')[0]}.txt`;
+            } else if (format === 'csv') {
+                content = 'Code,Status,Created At\n';
+                codesToExport.forEach(code => {
+                    const createdAt = code.created_at 
+                        ? new Date(code.created_at).toLocaleString('vi-VN')
+                        : '';
+                    content += `"${code.code}","${code.status}","${createdAt}"\n`;
+                });
+                filename = `codes_${statuses.join('_')}_${new Date().toISOString().split('T')[0]}.csv`;
+            }
+
+            const result = await window.electronAPI.saveFile(content, filename);
+            
+            if (result.success && !result.cancelled) {
+                message.success(`Đã xuất ${codesToExport.length} codes thành công`);
+                
+                // Xóa codes nếu người dùng chọn
+                if (deleteAfterExport) {
+                    const deletePromises = codesToExport.map(code => 
+                        window.electronAPI.deleteCode(code.id)
+                    );
+                    await Promise.all(deletePromises);
+                    message.success('Đã xóa các codes đã xuất');
+                    loadCodes(selectedCollectionId);
+                    loadCodeCollections();
+                }
+            }
+        } catch (error) {
+            message.error('Lỗi khi xuất file: ' + error.message);
+            throw error;
+        }
+    };
 
     return (
         <Layout className="code-layout" style={{ minHeight: 'calc(100vh - 160px)', background: 'transparent', margin: 0, padding: 0 }}>
@@ -395,6 +456,40 @@ export default function Code() {
                         {selectedCollectionId && (
                             <Space>
                                 <Button 
+                                    icon={<MdDownload />} 
+                                    onClick={() => setExportModalVisible(true)}
+                                >
+                                    Export
+                                </Button>
+                                <Popconfirm
+                                    title="Xóa tất cả codes?"
+                                    description={`Bạn có chắc chắn muốn xóa tất cả codes trong collection này? Hành động này không thể hoàn tác.`}
+                                    onConfirm={async () => {
+                                        try {
+                                            const result = await window.electronAPI.deleteAllCodes(selectedCollectionId);
+                                            if (result.success) {
+                                                message.success('Đã xóa tất cả codes');
+                                                loadCodes(selectedCollectionId);
+                                                loadCodeCollections();
+                                            } else {
+                                                message.error('Lỗi khi xóa: ' + result.error);
+                                            }
+                                        } catch (error) {
+                                            message.error('Lỗi khi xóa codes');
+                                        }
+                                    }}
+                                    okText="Xóa"
+                                    cancelText="Hủy"
+                                    okButtonProps={{ danger: true }}
+                                >
+                                    <Button 
+                                        danger
+                                        icon={<MdDelete />}
+                                    >
+                                        Xóa tất cả
+                                    </Button>
+                                </Popconfirm>
+                                <Button 
                                     icon={<MdFileUpload />} 
                                     onClick={() => setImportModalVisible(true)}
                                 >
@@ -523,6 +618,13 @@ export default function Code() {
                             loadCodeCollections();
                         }}
                         collectionId={selectedCollectionId}
+                    />
+
+                    <ExportModal
+                        visible={exportModalVisible}
+                        onClose={() => setExportModalVisible(false)}
+                        onExport={handleExport}
+                        totalCodes={getCodeCountsByStatus()}
                     />
                 </div>
             </Content>

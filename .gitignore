@@ -10,7 +10,23 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-electron
 *.local
+
+# Electron build outputs
+dist/win-unpacked
+dist/mac
+dist/linux
+dist/*.exe
+dist/*.dmg
+dist/*.AppImage
+dist/*.deb
+dist/*.rpm
+dist/*.zip
+dist/*.blockmap
+dist/*.yml
+dist/builder-*.yaml
+dist/builder-*.yml
 
 # Editor directories and files
 .vscode/*

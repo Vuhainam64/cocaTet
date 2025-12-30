@@ -397,6 +397,34 @@ export default function Proxy() {
                         </div>
                         {selectedCollectionId && (
                             <Space>
+                                <Popconfirm
+                                    title="Xóa tất cả proxies?"
+                                    description={`Bạn có chắc chắn muốn xóa tất cả proxies trong collection này? Hành động này không thể hoàn tác.`}
+                                    onConfirm={async () => {
+                                        try {
+                                            const result = await window.electronAPI.deleteAllProxies(selectedCollectionId);
+                                            if (result.success) {
+                                                message.success('Đã xóa tất cả proxies');
+                                                loadProxies(selectedCollectionId);
+                                                loadProxyCollections();
+                                            } else {
+                                                message.error('Lỗi khi xóa: ' + result.error);
+                                            }
+                                        } catch (error) {
+                                            message.error('Lỗi khi xóa proxies');
+                                        }
+                                    }}
+                                    okText="Xóa"
+                                    cancelText="Hủy"
+                                    okButtonProps={{ danger: true }}
+                                >
+                                    <Button 
+                                        danger
+                                        icon={<MdDelete />}
+                                    >
+                                        Xóa tất cả
+                                    </Button>
+                                </Popconfirm>
                                 <Button 
                                     icon={<MdFileUpload />} 
                                     onClick={() => setImportModalVisible(true)}

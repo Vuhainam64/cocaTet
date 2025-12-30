@@ -1,4 +1,5 @@
 import packageJson from '../../package.json';
+import { AutoPeeLogo } from '../assets';
 
 export default function Logo({ size = "default", showText = true, className = "" }) {
     const appName = "Coca Tet";
@@ -8,7 +9,7 @@ export default function Logo({ size = "default", showText = true, className = ""
     return (
         <div className={`flex items-center gap-2 ${className}`}>
             <img 
-                src="/logo.png" 
+                src={AutoPeeLogo}
                 alt="Logo" 
                 className={isSmall ? "w-8 h-8" : "w-10 h-10"}
             />
