@@ -1,8 +1,8 @@
-import { Table, Button, Space, Popconfirm, Tag } from 'antd';
-import { MdEdit, MdDelete } from 'react-icons/md';
+import { Table, Button, Space, Popconfirm, Tag, Tooltip } from 'antd';
+import { MdEdit, MdDelete, MdCardGiftcard, MdList, MdInventory } from 'react-icons/md';
 import dayjs from 'dayjs';
 
-export default function AccountTable({ accounts, loading, onEdit, onDelete }) {
+export default function AccountTable({ accounts, loading, onEdit, onDelete, onViewMyGifts, onViewLuckyDraws, onViewListGifts }) {
     const columns = [
         {
             title: 'Name',
@@ -42,9 +42,36 @@ export default function AccountTable({ accounts, loading, onEdit, onDelete }) {
         {
             title: 'Chức năng',
             key: 'action',
-            width: 120,
+            width: 200,
             render: (_, record) => (
                 <Space size="small">
+                    <Tooltip title="Xem quà của account">
+                        <Button
+                            type="text"
+                            icon={<MdCardGiftcard size={16} />}
+                            size="small"
+                            onClick={() => onViewMyGifts(record)}
+                            className="text-green-600 hover:text-green-700 dark:text-green-400"
+                        />
+                    </Tooltip>
+                    <Tooltip title="Xem danh sách giải">
+                        <Button
+                            type="text"
+                            icon={<MdList size={16} />}
+                            size="small"
+                            onClick={() => onViewLuckyDraws(record)}
+                            className="text-purple-600 hover:text-purple-700 dark:text-purple-400"
+                        />
+                    </Tooltip>
+                    <Tooltip title="Xem quà còn lại">
+                        <Button
+                            type="text"
+                            icon={<MdInventory size={16} />}
+                            size="small"
+                            onClick={() => onViewListGifts(record)}
+                            className="text-orange-600 hover:text-orange-700 dark:text-orange-400"
+                        />
+                    </Tooltip>
                     <Button
                         type="text"
                         icon={<MdEdit size={16} />}

@@ -1,7 +1,26 @@
-import { Table } from 'antd';
+import { Table, Image } from 'antd';
 
 export default function PrizeTable({ prizes }) {
     const columns = [
+        {
+            title: 'Hình ảnh',
+            dataIndex: 'thumbnail',
+            key: 'thumbnail',
+            width: 100,
+            render: (thumbnail) => {
+                if (!thumbnail) return '-';
+                return (
+                    <Image
+                        src={thumbnail}
+                        alt="Giải thưởng"
+                        width={60}
+                        height={60}
+                        style={{ objectFit: 'cover', borderRadius: '4px' }}
+                        fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect fill='%23f0f0f0' width='60' height='60'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='12'%3ENo Image%3C/text%3E%3C/svg%3E"
+                    />
+                );
+            },
+        },
         {
             title: 'Account',
             dataIndex: 'account',

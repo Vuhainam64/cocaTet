@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Layout, Typography, Button, Space, Modal, Form, Input, Popconfirm, App } from 'antd';
-import { MdAdd, MdFolder, MdEdit, MdDelete, MdFileUpload } from 'react-icons/md';
+import { MdAdd, MdFolder, MdEdit, MdDelete, MdFileUpload, MdCheckCircle } from 'react-icons/md';
 import dayjs from 'dayjs';
 import ProxyTable from './components/ProxyTable';
 import ProxyForm from './components/ProxyForm';
@@ -24,6 +24,8 @@ export default function Proxy() {
     const [editingProxy, setEditingProxy] = useState(null);
     const [proxyForm] = Form.useForm();
     const [importModalVisible, setImportModalVisible] = useState(false);
+    const [checkingProxies, setCheckingProxies] = useState(false);
+    const [checkProgress, setCheckProgress] = useState({ current: 0, total: 0 });
 
     useEffect(() => {
         loadProxyCollections();
@@ -115,6 +117,36 @@ export default function Proxy() {
             message.error('Lỗi khi tải proxies: ' + error.message);
         } finally {
             setProxiesLoading(false);
+        }
+    };
+
+    const handleCheckAllProxies = async () => {
+        if (!selectedCollectionId) {
+            message.warning('Vui lòng chọn collection');
+            return;
+        }
+
+        setCheckingProxies(true);
+        setCheckProgress({ current: 0, total: proxies.length });
+
+        try {
+            const result = await window.electronAPI.checkAllProxiesStatus(selectedCollectionId);
+            if (result.success) {
+                const { total, successCount, failCount } = result.data;
+                message.success(
+                    `Check hoàn tất! Tổng: ${total}, Sống: ${successCount}, Chết: ${failCount}`
+                );
+                // Reload proxies để cập nhật status
+                loadProxies(selectedCollectionId);
+                loadProxyCollections();
+            } else {
+                message.error('Lỗi khi check proxies: ' + result.error);
+            }
+        } catch (error) {
+            message.error('Lỗi khi check proxies: ' + error.message);
+        } finally {
+            setCheckingProxies(false);
+            setCheckProgress({ current: 0, total: 0 });
         }
     };
 
@@ -397,6 +429,19 @@ export default function Proxy() {
                         </div>
                         {selectedCollectionId && (
                             <Space>
+                                <Button 
+                                    icon={<MdCheckCircle />} 
+                                    onClick={handleCheckAllProxies}
+                                    loading={checkingProxies}
+                                    disabled={checkingProxies}
+                                >
+                                    Check All Proxies
+                                </Button>
+                                {checkingProxies && (
+                                    <Text type="secondary">
+                                        {checkProgress.current}/{checkProgress.total}
+                                    </Text>
+                                )}
                                 <Popconfirm
                                     title="Xóa tất cả proxies?"
                                     description={`Bạn có chắc chắn muốn xóa tất cả proxies trong collection này? Hành động này không thể hoàn tác.`}

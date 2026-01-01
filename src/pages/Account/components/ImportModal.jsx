@@ -1,8 +1,10 @@
 import { Modal, Form, Input, App } from 'antd';
+import { useState } from 'react';
 
 export default function ImportModal({ visible, onClose, onImport, collectionId }) {
     const { message } = App.useApp();
     const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async () => {
         try {
@@ -16,6 +18,9 @@ export default function ImportModal({ visible, onClose, onImport, collectionId }
                 message.warning('Vui lòng nhập ít nhất một token');
                 return;
             }
+
+            setLoading(true);
+            message.info('Đang lấy thông tin user và import accounts...', 3);
 
             const accounts = lines.map((line, index) => {
                 const parts = line.split(/\s+/);
@@ -56,6 +61,9 @@ export default function ImportModal({ visible, onClose, onImport, collectionId }
             }
         } catch (error) {
             console.error('Import error:', error);
+            message.error('Lỗi khi import: ' + error.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -71,6 +79,7 @@ export default function ImportModal({ visible, onClose, onImport, collectionId }
             width={600}
             okText="Import"
             cancelText="Hủy"
+            confirmLoading={loading}
         >
             <Form form={form} layout="vertical">
                 <Form.Item
@@ -88,7 +97,7 @@ export default function ImportModal({ visible, onClose, onImport, collectionId }
                     <p>• Mỗi dòng một account</p>
                     <p>• Format: Tên Token hoặc chỉ Token</p>
                     <p>• Ví dụ: "Account1 Bearer token123" hoặc "Bearer token123"</p>
-                    <p>• Nếu không có tên, tên sẽ được tự động tạo</p>
+                    <p>• Nếu không có tên, tên sẽ được tự động lấy từ API</p>
                 </div>
             </Form>
         </Modal>

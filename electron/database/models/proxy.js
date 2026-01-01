@@ -12,7 +12,7 @@ export const ProxyModel = {
             data.port,
             data.username || null,
             data.password || null,
-            data.type || 'socks5',
+            data.type || 'http', // Mặc định là HTTP proxy
             data.status || 'active',
             data.collection_id || null
         );
@@ -146,7 +146,7 @@ export const ProxyModel = {
                     proxy.port,
                     proxy.username || null,
                     proxy.password || null,
-                    proxy.type || 'socks5',
+                    proxy.type || 'http',
                     proxy.status || 'active',
                     proxy.collection_id !== undefined ? proxy.collection_id : collectionId || null
                 );

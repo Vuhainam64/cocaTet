@@ -64,4 +64,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getExchangeGiftProgress: () => ipcRenderer.invoke('exchangeGift:getProgress'),
     getExchangeGiftLogs: () => ipcRenderer.invoke('exchangeGift:getLogs'),
     getExchangeGiftPrizes: () => ipcRenderer.invoke('exchangeGift:getPrizes'),
+    
+    // Gift APIs
+    getMyGifts: (accountId, limit, page, proxy) => ipcRenderer.invoke('gift:getMyGifts', accountId, limit, page, proxy),
+    getGiftUserLuckyDraws: (campaignId, giftId, limit, page) => ipcRenderer.invoke('gift:getGiftUserLuckyDraws', campaignId, giftId, limit, page),
+    getListGifts: (campaignId, limit, page) => ipcRenderer.invoke('gift:getListGifts', campaignId, limit, page),
+    
+    // Account Token Check
+    checkAllAccountsToken: (accountCollectionId) => ipcRenderer.invoke('accounts:checkAllTokens', accountCollectionId),
+    
+    // Proxy Status Check
+    checkAllProxiesStatus: (proxyCollectionId) => ipcRenderer.invoke('proxies:checkAllStatus', proxyCollectionId),
 });

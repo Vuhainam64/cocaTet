@@ -42,6 +42,7 @@ export default function ProgressTable({ progress }) {
                     'error': 'red',
                     'waiting': 'default',
                     'stopped': 'orange',
+                    'blocked': 'purple',
                 };
                 const textMap = {
                     'running': 'Đang chạy',
@@ -49,6 +50,7 @@ export default function ProgressTable({ progress }) {
                     'error': 'Lỗi',
                     'waiting': 'Chờ',
                     'stopped': 'Đã dừng',
+                    'blocked': 'Bị Block',
                 };
                 return (
                     <Tag color={colorMap[status] || 'default'}>

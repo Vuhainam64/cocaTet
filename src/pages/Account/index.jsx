@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Layout, Typography, Button, Space, Modal, Form, Input, Popconfirm, App } from 'antd';
-import { MdAdd, MdFolder, MdEdit, MdDelete, MdFileUpload } from 'react-icons/md';
+import { Layout, Typography, Button, Space, Modal, Form, Input, Popconfirm, App, Progress } from 'antd';
+import { MdAdd, MdFolder, MdEdit, MdDelete, MdFileUpload, MdCheckCircle } from 'react-icons/md';
 import dayjs from 'dayjs';
 import AccountTable from './components/AccountTable';
 import AccountForm from './components/AccountForm';
 import ImportModal from './components/ImportModal';
+import GiftModal from './components/GiftModal';
 
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -24,6 +25,20 @@ export default function Account() {
     const [editingAccount, setEditingAccount] = useState(null);
     const [accountForm] = Form.useForm();
     const [importModalVisible, setImportModalVisible] = useState(false);
+    
+    const [giftModalVisible, setGiftModalVisible] = useState(false);
+    const [giftModalTitle, setGiftModalTitle] = useState('');
+    const [giftModalData, setGiftModalData] = useState(null);
+    const [giftModalLoading, setGiftModalLoading] = useState(false);
+    const [giftModalType, setGiftModalType] = useState(null);
+    const [giftModalPage, setGiftModalPage] = useState(0);
+    const [giftModalLimit, setGiftModalLimit] = useState(10);
+    const [giftModalTotal, setGiftModalTotal] = useState(0);
+    const [giftModalCampaignId, setGiftModalCampaignId] = useState(null);
+    const [giftModalGiftId, setGiftModalGiftId] = useState(null);
+    const [giftModalAccountId, setGiftModalAccountId] = useState(null);
+    const [checkingTokens, setCheckingTokens] = useState(false);
+    const [checkProgress, setCheckProgress] = useState({ current: 0, total: 0 });
 
     useEffect(() => {
         loadAccountCollections();
@@ -175,6 +190,127 @@ export default function Account() {
     };
 
     const selectedCollection = accountCollections.find(c => c.id === selectedCollectionId);
+
+    const handleViewMyGifts = async (account, page = 0, limit = 10) => {
+        setGiftModalVisible(true);
+        setGiftModalTitle(`Danh sách quà của ${account.name}`);
+        setGiftModalType('myGifts');
+        setGiftModalLoading(true);
+        setGiftModalData(null);
+        setGiftModalPage(page); // API dùng 0-based
+        setGiftModalLimit(limit);
+        setGiftModalAccountId(account.id);
+
+        try {
+            // API getMyGifts dùng page 0-based
+            const result = await window.electronAPI.getMyGifts(account.id, limit, page, null);
+            if (result.success) {
+                setGiftModalData(result.data);
+                setGiftModalTotal(result.data?.total || 0);
+            } else {
+                message.error('Lỗi khi lấy danh sách quà: ' + result.error);
+            }
+        } catch (error) {
+            message.error('Lỗi khi lấy danh sách quà: ' + error.message);
+        } finally {
+            setGiftModalLoading(false);
+        }
+    };
+
+    const handleMyGiftsPageChange = async (newPage, newLimit) => {
+        // newPage là 0-based từ GiftModal, API cũng dùng 0-based
+        if (giftModalAccountId) {
+            const account = accounts.find(a => a.id === giftModalAccountId);
+            if (account) {
+                await handleViewMyGifts(account, newPage, newLimit);
+            }
+        }
+    };
+
+    const handleViewLuckyDraws = async (account, page = 0, limit = 10) => {
+        setGiftModalVisible(true);
+        setGiftModalTitle('Danh sách người trúng giải');
+        setGiftModalType('luckyDraws');
+        setGiftModalLoading(true);
+        setGiftModalData(null);
+        setGiftModalPage(page);
+        setGiftModalLimit(limit);
+
+        try {
+            const campaignId = '69255b772d8de7e52b4a21fc';
+            const giftId = '69081e505d1eafb5ddc262cb';
+            setGiftModalCampaignId(campaignId);
+            setGiftModalGiftId(giftId);
+            
+            const result = await window.electronAPI.getGiftUserLuckyDraws(campaignId, giftId, limit, page);
+            if (result.success) {
+                setGiftModalData(result.data);
+                setGiftModalTotal(result.data?.total || 0);
+            } else {
+                message.error('Lỗi khi lấy danh sách giải: ' + result.error);
+            }
+        } catch (error) {
+            message.error('Lỗi khi lấy danh sách giải: ' + error.message);
+        } finally {
+            setGiftModalLoading(false);
+        }
+    };
+
+    const handleLuckyDrawsPageChange = async (newPage, newLimit) => {
+        await handleViewLuckyDraws(null, newPage, newLimit);
+    };
+
+    const handleCheckAllTokens = async () => {
+        if (!selectedCollectionId) {
+            message.warning('Vui lòng chọn collection');
+            return;
+        }
+
+        setCheckingTokens(true);
+        setCheckProgress({ current: 0, total: accounts.length });
+
+        try {
+            const result = await window.electronAPI.checkAllAccountsToken(selectedCollectionId);
+            if (result.success) {
+                const { total, successCount, failCount } = result.data;
+                message.success(
+                    `Check hoàn tất! Tổng: ${total}, Sống: ${successCount}, Chết: ${failCount}`
+                );
+                // Reload accounts để cập nhật status
+                loadAccounts(selectedCollectionId);
+                loadAccountCollections();
+            } else {
+                message.error('Lỗi khi check tokens: ' + result.error);
+            }
+        } catch (error) {
+            message.error('Lỗi khi check tokens: ' + error.message);
+        } finally {
+            setCheckingTokens(false);
+            setCheckProgress({ current: 0, total: 0 });
+        }
+    };
+
+    const handleViewListGifts = async (account) => {
+        setGiftModalVisible(true);
+        setGiftModalTitle('Danh sách quà còn lại');
+        setGiftModalType('listGifts');
+        setGiftModalLoading(true);
+        setGiftModalData(null);
+
+        try {
+            const campaignId = '69255b772d8de7e52b4a21fc';
+            const result = await window.electronAPI.getListGifts(campaignId, 100, 0);
+            if (result.success) {
+                setGiftModalData(result.data);
+            } else {
+                message.error('Lỗi khi lấy danh sách quà: ' + result.error);
+            }
+        } catch (error) {
+            message.error('Lỗi khi lấy danh sách quà: ' + error.message);
+        } finally {
+            setGiftModalLoading(false);
+        }
+    };
 
     return (
         <Layout className="account-layout" style={{ minHeight: 'calc(100vh - 160px)', background: 'transparent', margin: 0, padding: 0 }}>
@@ -394,6 +530,19 @@ export default function Account() {
                         </div>
                         {selectedCollectionId && (
                             <Space>
+                                <Button 
+                                    icon={<MdCheckCircle />} 
+                                    onClick={handleCheckAllTokens}
+                                    loading={checkingTokens}
+                                    disabled={checkingTokens}
+                                >
+                                    Check All Tokens
+                                </Button>
+                                {checkingTokens && (
+                                    <Text type="secondary">
+                                        {checkProgress.current}/{checkProgress.total}
+                                    </Text>
+                                )}
                                 <Popconfirm
                                     title="Xóa tất cả accounts?"
                                     description={`Bạn có chắc chắn muốn xóa tất cả accounts trong collection này? Hành động này không thể hoàn tác.`}
@@ -463,6 +612,9 @@ export default function Account() {
                                 loading={accountsLoading}
                                 onEdit={handleEditAccount}
                                 onDelete={handleDeleteAccount}
+                                onViewMyGifts={handleViewMyGifts}
+                                onViewLuckyDraws={handleViewLuckyDraws}
+                                onViewListGifts={handleViewListGifts}
                             />
                         </div>
                     ) : (
@@ -551,6 +703,33 @@ export default function Account() {
                             loadAccountCollections();
                         }}
                         collectionId={selectedCollectionId}
+                    />
+
+                    <GiftModal
+                        visible={giftModalVisible}
+                        onClose={() => {
+                            setGiftModalVisible(false);
+                            setGiftModalData(null);
+                            setGiftModalType(null);
+                            setGiftModalPage(0);
+                            setGiftModalLimit(10);
+                            setGiftModalTotal(0);
+                            setGiftModalAccountId(null);
+                        }}
+                        title={giftModalTitle}
+                        data={giftModalData}
+                        loading={giftModalLoading}
+                        type={giftModalType}
+                        onPageChange={
+                            giftModalType === 'luckyDraws' 
+                                ? handleLuckyDrawsPageChange 
+                                : giftModalType === 'myGifts'
+                                ? handleMyGiftsPageChange
+                                : undefined
+                        }
+                        currentPage={giftModalPage}
+                        currentLimit={giftModalLimit}
+                        total={giftModalTotal}
                     />
                 </div>
             </Content>

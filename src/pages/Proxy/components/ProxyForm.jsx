@@ -37,12 +37,12 @@ export default function ProxyForm({ form }) {
             <Form.Item
                 label="Type"
                 name="type"
-                initialValue="socks5"
+                initialValue="http"
             >
                 <Select>
-                    <Select.Option value="socks5">SOCKS5</Select.Option>
                     <Select.Option value="http">HTTP</Select.Option>
                     <Select.Option value="https">HTTPS</Select.Option>
+                    <Select.Option value="socks5">SOCKS5</Select.Option>
                 </Select>
             </Form.Item>
             <Form.Item

@@ -441,7 +441,36 @@ function setupIpcHandlers() {
   ipcMain.handle('accounts:bulkCreate', async (event, accounts, collectionId) => {
     try {
       const { AccountModel } = await import('./database/models/account.js');
-      const result = AccountModel.bulkCreate(accounts, collectionId);
+      const { getUserInfo } = await import('./services/exchangeGiftService.js');
+      
+      // Lấy tên user từ API cho mỗi account
+      const accountsWithNames = await Promise.all(
+        accounts.map(async (account) => {
+          // Nếu đã có tên và không phải tên mặc định (bắt đầu bằng "Account " và có timestamp), giữ nguyên
+          const isDefaultName = account.name && account.name.match(/^Account \d+-\d+$/);
+          if (account.name && !isDefaultName) {
+            return account;
+          }
+          
+          // Gọi API để lấy tên user
+          try {
+            const userInfo = await getUserInfo(account.token);
+            if (userInfo.success && userInfo.name) {
+              return {
+                ...account,
+                name: userInfo.name,
+              };
+            }
+          } catch (error) {
+            console.error(`Failed to get user info for token: ${error.message}`);
+          }
+          
+          // Nếu không lấy được tên, giữ nguyên tên mặc định
+          return account;
+        })
+      );
+      
+      const result = AccountModel.bulkCreate(accountsWithNames, collectionId);
       return { success: true, data: result };
     } catch (error) {
       console.error('Bulk create accounts error:', error);
@@ -631,6 +660,56 @@ function setupIpcHandlers() {
       return getExchangeGiftPrizes();
     } catch (error) {
       console.error('Get exchange gift prizes error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('gift:getMyGifts', async (event, accountId, limit, page, proxy) => {
+    try {
+      const { getMyGifts } = await import('./services/exchangeGiftService.js');
+      return getMyGifts(accountId, limit, page, proxy);
+    } catch (error) {
+      console.error('Get my gifts error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('gift:getGiftUserLuckyDraws', async (event, campaignId, giftId, limit, page) => {
+    try {
+      const { getGiftUserLuckyDraws } = await import('./services/exchangeGiftService.js');
+      return getGiftUserLuckyDraws(campaignId, giftId, limit, page);
+    } catch (error) {
+      console.error('Get gift user lucky draws error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('gift:getListGifts', async (event, campaignId, limit, page) => {
+    try {
+      const { getListGifts } = await import('./services/exchangeGiftService.js');
+      return getListGifts(campaignId, limit, page);
+    } catch (error) {
+      console.error('Get list gifts error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('accounts:checkAllTokens', async (event, accountCollectionId) => {
+    try {
+      const { checkAllAccountsToken } = await import('./services/exchangeGiftService.js');
+      return checkAllAccountsToken(accountCollectionId);
+    } catch (error) {
+      console.error('Check all accounts token error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('proxies:checkAllStatus', async (event, proxyCollectionId) => {
+    try {
+      const { checkAllProxiesStatus } = await import('./services/exchangeGiftService.js');
+      return checkAllProxiesStatus(proxyCollectionId);
+    } catch (error) {
+      console.error('Check all proxies status error:', error);
       return { success: false, error: error.message };
     }
   });

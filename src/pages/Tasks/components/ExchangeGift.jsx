@@ -15,6 +15,7 @@ export default function ExchangeGift() {
     const [progress, setProgress] = useState([]);
     const [prizes, setPrizes] = useState([]);
     const [logModalVisible, setLogModalVisible] = useState(false);
+    const [stats, setStats] = useState({ totalCodes: 0, processedCodes: 0, remainingCodes: 0 });
 
     useEffect(() => {
         loadCollections();
@@ -29,13 +30,28 @@ export default function ExchangeGift() {
             ]);
 
             if (accountsRes.success) {
-                setAccountCollections(accountsRes.data || []);
+                const accounts = accountsRes.data || [];
+                setAccountCollections(accounts);
+                // Tự động chọn collection mới nhất (phần tử đầu tiên vì đã sort DESC)
+                if (accounts.length > 0) {
+                    form.setFieldsValue({ accountCollectionId: accounts[0].id });
+                }
             }
             if (proxiesRes.success) {
-                setProxyCollections(proxiesRes.data || []);
+                const proxies = proxiesRes.data || [];
+                setProxyCollections(proxies);
+                // Tự động chọn collection mới nhất
+                if (proxies.length > 0) {
+                    form.setFieldsValue({ proxyCollectionId: proxies[0].id });
+                }
             }
             if (codesRes.success) {
-                setCodeCollections(codesRes.data || []);
+                const codes = codesRes.data || [];
+                setCodeCollections(codes);
+                // Tự động chọn collection mới nhất
+                if (codes.length > 0) {
+                    form.setFieldsValue({ codeCollectionId: codes[0].id });
+                }
             }
         } catch (error) {
             console.error('Error loading collections:', error);
@@ -53,6 +69,7 @@ export default function ExchangeGift() {
                 proxyCollectionId: values.proxyCollectionId,
                 codeCollectionId: values.codeCollectionId,
                 timeoutMs: values.timeoutMs || 7000,
+                delayAccountMs: values.delayAccountMs || 1000,
             });
 
             if (result.success) {
@@ -89,6 +106,13 @@ export default function ExchangeGift() {
                     ]);
                     if (progressRes.success) {
                         setProgress(progressRes.data || []);
+                        if (progressRes.stats) {
+                            setStats(progressRes.stats);
+                            // Kiểm tra nếu task hoàn thành
+                            if (!isRunning && progressRes.stats.remainingCodes === 0 && progressRes.stats.totalCodes > 0) {
+                                message.success(`Task hoàn thành! Đã xử lý ${progressRes.stats.processedCodes}/${progressRes.stats.totalCodes} codes.`);
+                            }
+                        }
                     }
                     if (prizesRes.success) {
                         setPrizes(prizesRes.data || []);
@@ -106,6 +130,9 @@ export default function ExchangeGift() {
                     ]);
                     if (progressRes.success && progressRes.data && progressRes.data.length > 0) {
                         setProgress(progressRes.data);
+                        if (progressRes.stats) {
+                            setStats(progressRes.stats);
+                        }
                     }
                     if (prizesRes.success) {
                         setPrizes(prizesRes.data || []);
@@ -122,12 +149,12 @@ export default function ExchangeGift() {
     }, [isRunning]);
 
     return (
-        <div className="space-y-4">
+        <div className="!space-y-4">
             <Card title="Cài đặt" className="mb-4">
                 <Form
                     form={form}
                     layout="vertical"
-                    initialValues={{ timeoutMs: 7000 }}
+                    initialValues={{ timeoutMs: 7000, delayAccountMs: 1000 }}
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Form.Item
@@ -196,6 +223,20 @@ export default function ExchangeGift() {
                                 style={{ width: '100%' }}
                             />
                         </Form.Item>
+
+                        <Form.Item
+                            label="Delay giữa các account (ms)"
+                            name="delayAccountMs"
+                            rules={[{ required: true, message: 'Vui lòng nhập delay' }]}
+                            tooltip="Thời gian chờ giữa mỗi account khi bắt đầu chạy. Ví dụ: 1000ms = Account 1 chạy ngay, Account 2 chạy sau 1000ms, Account 3 chạy sau 2000ms..."
+                        >
+                            <InputNumber
+                                placeholder="1000"
+                                min={0}
+                                max={60000}
+                                style={{ width: '100%' }}
+                            />
+                        </Form.Item>
                     </div>
 
                     <Form.Item>
@@ -229,6 +270,30 @@ export default function ExchangeGift() {
                     </Form.Item>
                 </Form>
             </Card>
+            {stats.totalCodes > 0 && (
+                <Card className="mb-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Tiến trình</div>
+                            <div className="text-2xl font-bold">
+                                {stats.processedCodes} / {stats.totalCodes} codes
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Còn lại</div>
+                            <div className="text-2xl font-bold text-orange-600">
+                                {stats.remainingCodes} codes
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Hoàn thành</div>
+                            <div className="text-2xl font-bold text-green-600">
+                                {stats.totalCodes > 0 ? Math.round((stats.processedCodes / stats.totalCodes) * 100) : 0}%
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+            )}
 
             <Card title="Tiến trình">
                 <ProgressTable progress={progress} />

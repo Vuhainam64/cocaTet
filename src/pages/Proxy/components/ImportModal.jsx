@@ -14,7 +14,7 @@ export default function ImportModal({ visible, onClose, onImport, collectionId }
             port: parseInt(parts[1], 10),
             username: parts[2] || null,
             password: parts[3] || null,
-            type: 'socks5',
+            type: 'http', // Mặc định là HTTP proxy
             status: 'active',
         };
     };
